@@ -62,7 +62,7 @@ exports.getAllDoctors = async (req, res) => {
 exports.getAllPatients = async (req, res) => {
   try {
     // Fetch all users with role 'patient' from the database
-    const patients = await UserModel.find({ "roles.role": "patient" });
+    const patients = await UserModel.find({ "roles[0].role": "patient" });
     // Send a JSON response with the fetched patients and success status
     res.json({ data: patients, status: "success" });
   } catch (err) {
@@ -112,6 +112,8 @@ exports.createUser = async (req, res) => {
       password,
       uniqueId,
       district,
+      longtitude,
+      latitude,
     } = req.body;
 
     // Check if the user already exists
@@ -136,6 +138,8 @@ exports.createUser = async (req, res) => {
           role: type,
           uniqueId,
           district,
+          longtitude,
+          latitude,
         },
       ],
     });
@@ -155,6 +159,35 @@ exports.createUser = async (req, res) => {
     }
     // Handle other errors
     console.error("Error creating user:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    // Destructure necessary fields from request body
+    const { email, newPassword } = req.body;
+
+    // Find the user by email
+    const user = await UserModel.findOne({ email });
+
+    // Check if the user exists
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the user's password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Send a success message
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    // Handle other errors
+    console.error("Error resetting password:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
