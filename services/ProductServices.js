@@ -67,8 +67,7 @@ const createProduct = async (data) => {
 
 const editProduct = async (productId, data) => {
   try {
-    const { price, special_instruction } = data;
-
+    const { qty } = data;
     // Check if productId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       throw new Error("Invalid product ID");
@@ -76,11 +75,8 @@ const editProduct = async (productId, data) => {
 
     // Prepare update data
     const updateData = {};
-    if (price !== undefined) {
-      updateData.price = parseFloat(price);
-    }
-    if (special_instruction !== undefined) {
-      updateData.special_instruction = special_instruction;
+    if (qty !== undefined) {
+      updateData.qty = parseFloat(qty);
     }
 
     // Update the product
