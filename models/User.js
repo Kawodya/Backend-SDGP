@@ -49,13 +49,26 @@ const userSchema = new Schema({
           return this.role === "doctor" || this.role === "pharmacist";
         },
       },
-      // Additional field for patient, must be a string and required based on the role
-      age: {
+
+      longtitude: {
         type: String,
         required: function () {
-          return this.role === "patient";
+          return this.role === "pharmacist";
         },
       },
+      latitude: {
+        type: String,
+        required: function () {
+          return this.role === "pharmacist";
+        },
+      },
+      // Additional field for patient, must be a string and required based on the role
+      // age: {
+      //   type: String,
+      //   required: function () {
+      //     return this.role === "patient";
+      //   },
+      // },
       // Additional field for patient, must be a string and required based on the role
       district: {
         type: String,
