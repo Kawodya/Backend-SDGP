@@ -4,6 +4,14 @@ const Schema = mongoose.Schema;
 
 // Defining the schema for the Drug entity
 const billSchema = new Schema({
+  code: {
+    type: String,
+    required: true,
+  },
+  pharmacist: {
+    type: Schema.Types.ObjectId, // Specifies that it should be an ObjectID
+    ref: "User",
+  },
   // Price of the product, must be a number and is required
   total: {
     type: Number,

@@ -13,25 +13,28 @@ const prescriptionSchema = new Schema({
   age: {
     type: String,
   },
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
   date: {
     type: String,
     // type: Date,
     // default: Date.now,
   },
-    // Array of medicines in the bill
-    medicines: [
-      {
-        product: {
-          type: Schema.Types.ObjectId,
-          ref: "Product",
-          required: true,
-        },
-        user_instruction: {
-          type: String,
-        },
+  // Array of medicines in the bill
+  medicines: [
+    {
+      product: {
+        type: Schema.Types.ObjectId,
+        ref: "Product",
+        required: true,
       },
-    ],
- 
+      user_instruction: {
+        type: String,
+      },
+    },
+  ],
 });
 
 // Creating a Mongoose model based on the schema, named "Prescription"

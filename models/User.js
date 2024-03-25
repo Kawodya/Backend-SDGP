@@ -50,7 +50,7 @@ const userSchema = new Schema({
         },
       },
 
-      longtitude: {
+      longitude: {
         type: String,
         required: function () {
           return this.role === "pharmacist";

@@ -112,7 +112,7 @@ exports.createUser = async (req, res) => {
       password,
       uniqueId,
       district,
-      longtitude,
+      longitude,
       latitude,
     } = req.body;
 
@@ -138,7 +138,7 @@ exports.createUser = async (req, res) => {
           role: type,
           uniqueId,
           district,
-          longtitude,
+          longitude,
           latitude,
         },
       ],
