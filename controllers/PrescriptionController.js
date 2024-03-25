@@ -1,5 +1,7 @@
 // Importing the BrandServices module
 const prescriptionService = require("../services/PrescriptionServices");
+const { ObjectId } = require("mongoose").Types;
+const sendMail = require("../utils/sendMail");
 
 // Importing the UserModel
 const UserModel = require("../models/User");
@@ -40,6 +42,8 @@ const createPrescription = async (req, res) => {
   try {
     // Call the createBrand function from the brandService module with the request body
     const prescription = await prescriptionService.createPrescription(req.body);
+    const user = await UserModel.findById(prescription.user);
+    sendPrescriptionEmail(prescription.code, user.email);
     // Send a JSON response with the created brand and success status
     res.json({ data: prescription, status: "success" });
   } catch (err) {
@@ -48,19 +52,31 @@ const createPrescription = async (req, res) => {
   }
 };
 
+const sendPrescriptionEmail = async (code, email) => {
+  try {
+    const mailResponse = await sendMail(
+      email,
+      "Prescription Details",
+      `<h1>Your latest prescription detail code is </h1>
+       <p>${code}</p>`
+    );
+    console.log("Email sent successfully: ", mailResponse);
+  } catch (error) {
+    console.log("Error occurred while sending email: ", error);
+    throw error;
+  }
+};
 // Function to associate a prescription with a user
 const addPrescriptionToUser = async (userId, prescriptionId) => {
   try {
     // Find the user by ID
     const user = await UserPrescriptionModel.findById(userId);
-
     if (!user) {
       throw new Error("User not found");
     }
 
     // Check if the prescription ID is valid (optional)
     // You may want to validate the prescription ID here
-
     // Associate the prescription with the user
     user.prescriptions.push(prescriptionId);
 
@@ -102,12 +118,16 @@ const getPrescriptionByUser = async (req, res) => {
 const getPharmacistsWithProducts = async (req, res) => {
   try {
     // Extract the user ID from the request parameters
-    const districtId = new ObjectId(req.params.district_id);
-    const prescriptionId = new ObjectId(req.params.prescription_id);
+    const districtId = req.params.district_id;
+    const prescriptionId = req.params.prescription_id;
+    const longitude = req.params.longitude;
+    const latitude = req.params.latitude;
 
     const prescriptions = await prescriptionService.getPharmacistsWithProducts(
       districtId,
-      prescriptionId
+      prescriptionId,
+      longitude,
+      latitude
     );
     // Send a JSON response with the created brand and success status
     res.json({ data: prescriptions, status: "success" });
