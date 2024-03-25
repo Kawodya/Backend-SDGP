@@ -78,6 +78,7 @@ const editProduct = async (productId, data) => {
     if (qty !== undefined) {
       updateData.qty = parseFloat(qty);
     }
+    
 
     // Update the product
     const updatedProduct = await ProductModel.findByIdAndUpdate(
