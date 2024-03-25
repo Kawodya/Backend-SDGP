@@ -3,6 +3,7 @@ const ProductModel = require("../models/Product");
 const PrescriptionModel = require("../models/Prescription");
 const PharmacyProductModel = require("../models/PharmacyProduct");
 const UserModel = require("../models/User");
+const geolib = require('geolib');
 
 const {
   Types: { ObjectId },
@@ -107,7 +108,7 @@ const getPharmacistsWithProducts = async (
     let totalQuantity = 0;
     let totalPrice = 0;
 
-    const productIds = prescription.medicines.map((med) => med.product_id);
+    const productIds = prescription.medicines.map((med) => med.product);
 
     // Find products in the prescription
     const products = await ProductModel.find({ _id: { $in: productIds } });
@@ -134,6 +135,12 @@ const getPharmacistsWithProducts = async (
         user: pharmacy._id,
       });
 
+      // Check if pharmacyProduct is null or undefined
+      if (!pharmacyProduct) {
+        // Handle the case where there is no PharmacyProduct for this pharmacist
+        continue; // Skip to the next pharmacist
+      }
+
       // Check if all product IDs from the prescription are available in pharmacyProduct
       const allProductsAvailable = productIds.every((productId) =>
         pharmacyProduct.products.includes(productId)
@@ -154,6 +161,8 @@ const getPharmacistsWithProducts = async (
           totalQuantity,
           totalPrice,
           distance,
+          latitude: pharmacy.roles[0].latitude,
+          longitude: pharmacy.roles[0].longitude,
         };
         // Push pharmacist's pharmacy product to available_pharmacists array
         available_pharmacists.push(data);
