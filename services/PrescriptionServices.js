@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const ProductModel = require("../models/Product");
 const PrescriptionModel = require("../models/Prescription");
+const PharmacyProductModel = require("../models/PharmacyProduct");
 const UserModel = require("../models/User");
 
 const {
@@ -9,9 +10,9 @@ const {
 
 const getAllPrescriptions = async () => {
   try {
-    const prescriptions = await PrescriptionModel.find().populate(
-      "medicines.product"
-    );
+    const prescriptions = await PrescriptionModel.find()
+      .populate("medicines.product")
+      .sort({ _id: -1 });
 
     return prescriptions;
   } catch (error) {
@@ -23,12 +24,13 @@ const createPrescription = async (data) => {
   try {
     // Create an array to store medicines
     const medicinesArray = [];
-    console.log(data);
+
     // Loop through the medicines data and create objects to push into the medicines array
     for (const med of data.medicines) {
-      const { medicineId, useInstructions } = med;
+      const { medicineId, userId, useInstructions } = med;
 
       const product_id = medicineId ? new ObjectId(medicineId) : null;
+      // const user_id = userId ? new ObjectId(userId) : null;
       // Push the medicine object into the array
       medicinesArray.push({
         product: product_id,
@@ -42,6 +44,7 @@ const createPrescription = async (data) => {
       code: data.code,
       user_name: data.user_name,
       age: data.age,
+      user: data.user_id,
       date: data.date,
       medicines: medicinesArray, // Assign the medicines array
     };
@@ -83,55 +86,80 @@ const getPrescriptionByCode = async (code) => {
   }
 };
 
-const getPharmacistsWithProducts = async (districtId, prescriptionId) => {
+const getPharmacistsWithProducts = async (
+  districtId,
+  prescriptionId,
+  longitude,
+  latitude
+) => {
   try {
+    const userCoordinates = { latitude, longitude };
+
     // Retrieve prescription details
-    const prescription = await PrescriptionModel.findById(prescriptionId);
+    const prescription = await PrescriptionModel.findOne({
+      code: prescriptionId,
+    });
 
     if (!prescription) {
       throw new Error("Prescription not found");
     }
 
+    let totalQuantity = 0;
+    let totalPrice = 0;
+
     const productIds = prescription.medicines.map((med) => med.product_id);
 
-    // Find all pharmacists in the given district
-    const pharmacists = await UserModel.find({
-      "roles.role": "pharmacist",
-      "roles.district": districtId,
+    // Find products in the prescription
+    const products = await ProductModel.find({ _id: { $in: productIds } });
+
+    // Calculate total quantity and total price
+    products.forEach((product) => {
+      totalQuantity += product.qty;
+      totalPrice += product.price * product.qty;
     });
 
-    // Initialize a map to store pharmacist details with their product totals
-    const pharmacistProductTotals = new Map();
+    let available_pharmacists = [];
+    const pharmacists = await UserModel.find({
+      roles: {
+        $elemMatch: {
+          role: "pharmacist",
+          district: districtId,
+        },
+      },
+    });
 
-    // Iterate over each pharmacist to find their associated products and calculate totals
-    for (const pharmacist of pharmacists) {
-      const pharmacistId = pharmacist._id.toString();
-      const pharmacistName = pharmacist.name;
-
-      // Find all products associated with the pharmacist
-      const products = await ProductModel.find({
-        _id: { $in: productIds },
-        brand: pharmacistId, // Assuming brand represents the pharmacist in this context
+    for (const pharmacy of pharmacists) {
+      // Find PharmacyProduct associated with the pharmacist
+      const pharmacyProduct = await PharmacyProductModel.findOne({
+        user: pharmacy._id,
       });
 
-      let totalQuantity = 0;
-      let totalPrice = 0;
+      // Check if all product IDs from the prescription are available in pharmacyProduct
+      const allProductsAvailable = productIds.every((productId) =>
+        pharmacyProduct.products.includes(productId)
+      );
 
-      // Calculate total quantity and price for each product
-      for (const product of products) {
-        const { qty, price } = product;
-        totalQuantity += qty;
-        totalPrice += qty * price;
+      if (allProductsAvailable) {
+        const pharmacyCoordinates = {
+          latitude: pharmacy.roles[0].latitude,
+          longitude: pharmacy.roles[0].longitude,
+        };
+        const distance = geolib.getDistance(
+          userCoordinates,
+          pharmacyCoordinates
+        );
+
+        let data = {
+          pharmacy,
+          totalQuantity,
+          totalPrice,
+          distance,
+        };
+        // Push pharmacist's pharmacy product to available_pharmacists array
+        available_pharmacists.push(data);
       }
-
-      // Store pharmacist details with their product totals
-      pharmacistProductTotals.set(pharmacistName, {
-        totalQuantity,
-        totalPrice,
-      });
     }
-
-    return pharmacistProductTotals;
+    return available_pharmacists;
   } catch (error) {
     throw new Error(
       `Error fetching pharmacists with products: ${error.message}`
