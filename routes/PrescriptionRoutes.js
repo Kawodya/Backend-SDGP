@@ -15,7 +15,9 @@ router.route("/add-prescription-to-user").post(addPrescriptionToUser);
 router.route("/get-prescription-by-user/:id").get(getPrescriptionByUser);
 router.route("/get-prescription-by-code/:code").get(getPrescriptionByCode);
 router
-  .route("/get-pharmacists-by-prescription/:district_id/:prescription_id")
+  .route(
+    "/get-pharmacists-by-prescription/:district_id/:prescription_id/:longitude/:latitude"
+  )
   .get(getPharmacistsWithProducts);
 
 module.exports = router;
